@@ -14,6 +14,8 @@ let ballSpeedX = 4, ballSpeedY = 4;
 let player1Score = 0;
 let player2Score = 0;
 let gameActive = true;
+let confettiParticles = []; // Confetti particles array
+let confettiDuration = 100; // Duration for confetti animation
 
 const keys = {
     w: false,
@@ -43,15 +45,23 @@ function draw() {
     ctx.fillRect(canvas.width - paddleWidth, player2Y, paddleWidth, paddleHeight); // Player 2
 
     // Draw ball
-    ctx.beginPath();
-    ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "#333";
-    ctx.fill();
-    ctx.closePath();
+    if (gameActive) {
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "#333";
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    // Draw confetti if game ended
+    drawConfetti();
 }
 
 function update() {
-    if (!gameActive) return; // Stop the update if the game is not active
+    if (!gameActive) {
+        updateConfetti();
+        return; // Stop ball and paddle updates when the game is not active
+    }
 
     ballX += ballSpeedX;
     ballY += ballSpeedY;
@@ -109,6 +119,9 @@ function update() {
     if (keys.ArrowDown && player2Y < canvas.height - paddleHeight) {
         player2Y += 5; // Player 2 moves down
     }
+
+    // Update confetti if game is over
+    updateConfetti();
 }
 
 function resetBall() {
@@ -125,13 +138,49 @@ function endGame() {
         winnerMessage.textContent = "Speler 2 heeft gewonnen!";
     }
     menu.classList.remove("hidden");
-    cancelAnimationFrame(animationId);
+    startConfetti(); // Start confetti when the game ends
 }
 
 function gameLoop() {
     draw();
     update();
     animationId = requestAnimationFrame(gameLoop);
+}
+
+// Confetti logic
+function startConfetti() {
+    confettiParticles = []; // Clear any previous particles
+    for (let i = 0; i < 100; i++) {
+        confettiParticles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            speedX: (Math.random() - 0.5) * 2,
+            speedY: Math.random() * 3 + 2,
+            color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+            size: Math.random() * 5 + 3
+        });
+    }
+}
+
+function updateConfetti() {
+    confettiParticles.forEach(particle => {
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+
+        if (particle.y > canvas.height) {
+            particle.y = -particle.size; // Reset to top if it falls out of bounds
+        }
+    });
+}
+
+function drawConfetti() {
+    confettiParticles.forEach(particle => {
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.closePath();
+    });
 }
 
 // Handle key down events
@@ -157,6 +206,7 @@ restartButton.addEventListener("click", function() {
     player1Y = (canvas.height - paddleHeight) / 2;
     player2Y = (canvas.height - paddleHeight) / 2;
     gameActive = true; // Set the game active again
+    confettiParticles = []; // Clear confetti
     menu.classList.add("hidden");
     gameLoop();
 });
